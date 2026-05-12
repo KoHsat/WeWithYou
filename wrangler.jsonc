@@ -1,0 +1,13 @@
+{
+  "name": "wewithyou",
+  "compatibility_date": "2026-05-13",
+  "assets": {
+    "directory": "."
+  },
+  "kv_namespaces": [
+    {
+      "binding": "WWY_APPLICATIONS",
+      "id": "2470834696b44cbb8d6985aa9266d0b5"
+    }
+  ]
+}
