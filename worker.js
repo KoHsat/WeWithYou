@@ -80,69 +80,85 @@ function usersMatchByIdentity(firstUser, secondUser) {
   return Boolean(firstUser.phone && secondUser.phone && firstUser.phone === secondUser.phone);
 }
 
-export function onRequestOptions() {
-  return json({ ok: true });
-}
-
-export async function onRequestGet({ env }) {
-  try {
-    const users = await readUsers(env);
-    return json({ users });
-  } catch (error) {
-    return json({ error: "Application sync is not configured yet." }, 503);
+async function handleApplicationsApi(request, env) {
+  if (request.method === "OPTIONS") {
+    return json({ ok: true });
   }
-}
 
-export async function onRequestPost({ request, env }) {
-  try {
-    const body = await request.json();
-    const incomingUser = sanitizeUser(body.user, "pending");
-    incomingUser.status = "pending";
-
-    if (!incomingUser.email && !incomingUser.phone) {
-      return json({ error: "Email or phone number is required." }, 400);
+  if (request.method === "GET") {
+    try {
+      const users = await readUsers(env);
+      return json({ users });
+    } catch (error) {
+      return json({ error: "Application sync is not configured yet." }, 503);
     }
+  }
 
-    const users = await readUsers(env);
-    const existingIndex = users.findIndex((user) => usersMatchByIdentity(user, incomingUser));
+  if (request.method === "POST") {
+    try {
+      const body = await request.json();
+      const incomingUser = sanitizeUser(body.user, "pending");
+      incomingUser.status = "pending";
 
-    if (existingIndex >= 0) {
-      users[existingIndex] = { ...users[existingIndex], ...incomingUser, status: users[existingIndex].status || "pending" };
+      if (!incomingUser.email && !incomingUser.phone) {
+        return json({ error: "Email or phone number is required." }, 400);
+      }
+
+      const users = await readUsers(env);
+      const existingIndex = users.findIndex((user) => usersMatchByIdentity(user, incomingUser));
+
+      if (existingIndex >= 0) {
+        users[existingIndex] = { ...users[existingIndex], ...incomingUser, status: users[existingIndex].status || "pending" };
+        await writeUsers(env, users);
+        return json({ user: users[existingIndex] });
+      }
+
+      users.push(incomingUser);
       await writeUsers(env, users);
-      return json({ user: users[existingIndex] });
+      return json({ user: incomingUser }, 201);
+    } catch (error) {
+      return json({ error: "Application could not be saved." }, 500);
     }
-
-    users.push(incomingUser);
-    await writeUsers(env, users);
-    return json({ user: incomingUser }, 201);
-  } catch (error) {
-    return json({ error: "Application could not be saved." }, 500);
   }
+
+  if (request.method === "PATCH") {
+    try {
+      const body = await request.json();
+      const id = cleanText(body.id);
+      const status = cleanText(body.status);
+
+      if (!id || !ALLOWED_STATUSES.has(status)) {
+        return json({ error: "A valid application id and status are required." }, 400);
+      }
+
+      const users = await readUsers(env);
+      const user = users.find((item) => item.id === id);
+
+      if (!user) {
+        return json({ error: "Application was not found." }, 404);
+      }
+
+      user.status = status;
+      user.reviewedAt = new Date().toISOString();
+
+      await writeUsers(env, users);
+      return json({ user });
+    } catch (error) {
+      return json({ error: "Application could not be updated." }, 500);
+    }
+  }
+
+  return json({ error: "Method not allowed." }, 405);
 }
 
-export async function onRequestPatch({ request, env }) {
-  try {
-    const body = await request.json();
-    const id = cleanText(body.id);
-    const status = cleanText(body.status);
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
 
-    if (!id || !ALLOWED_STATUSES.has(status)) {
-      return json({ error: "A valid application id and status are required." }, 400);
+    if (url.pathname === "/api/applications") {
+      return handleApplicationsApi(request, env);
     }
 
-    const users = await readUsers(env);
-    const user = users.find((item) => item.id === id);
-
-    if (!user) {
-      return json({ error: "Application was not found." }, 404);
-    }
-
-    user.status = status;
-    user.reviewedAt = new Date().toISOString();
-
-    await writeUsers(env, users);
-    return json({ user });
-  } catch (error) {
-    return json({ error: "Application could not be updated." }, 500);
+    return env.ASSETS.fetch(request);
   }
-}
+};

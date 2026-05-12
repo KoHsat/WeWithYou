@@ -1,9 +1,18 @@
+{
+  "name": "wewithyou",
+  "main": "worker.js",
+  "compatibility_date": "2026-05-13",
+  "assets": {
+    "directory": "."
+  },
   "kv_namespaces": [
     {
+      "binding": "WWY_APPLICATIONS",
+      "id": "2470834696b44cbb8d6985aa9266d0b5"
+    },
+    {
       "binding": "KV",
-      "id": "2470834696b44cbb8d6985aa9266d0b5",
-      
-      // Optional: preview_id used when running `wrangler dev` for local dev
-      "preview_id": "<ID_OF_PREVIEW_KV_NAMESPACE_FOR_LOCAL_DEVELOPMENT>"
+      "id": "2470834696b44cbb8d6985aa9266d0b5"
     }
   ]
+}
