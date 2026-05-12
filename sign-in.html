@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>We With You | Sign In & Sign Up</title>
+  <title>We With You | Sign In</title>
   <meta
     name="description"
-    content="Sign in or apply to join the We With You member program."
+    content="Sign in to access We With You rewards, points, and member tools."
   >
   <link rel="stylesheet" href="style.css">
 </head>
@@ -46,21 +46,21 @@
       <div class="container">
         <div class="section-intro">
           <span class="eyebrow">Member Access</span>
-          <h1>Sign in or apply to join the program.</h1>
+          <h1>Sign in to continue with the program.</h1>
           <p>
-            Members can sign in using an approved email or phone number and password. New applicants can submit their
-            details and supporting files for review.
+            Approved members can sign in using their email or phone number and password. New applicants can submit a
+            sign-up application for review.
           </p>
         </div>
       </div>
     </section>
 
     <section>
-      <div class="container auth-layout">
-        <div id="current-session-status"></div>
+      <div class="container auth-shell">
+        <div class="auth-stack">
+          <div id="current-session-status"></div>
 
-        <div class="auth-layout">
-          <article class="card">
+          <article class="card auth-card">
             <span class="eyebrow">Sign In</span>
             <h3>Access your points and rewards.</h3>
             <form id="sign-in-form">
@@ -74,64 +74,24 @@
               </label>
               <button class="button button-primary" type="submit">Sign In</button>
             </form>
-          </article>
-
-          <article class="card">
-            <span class="eyebrow">Sign Up</span>
-            <h3>Submit your application for review.</h3>
-            <div class="auth-methods">
-              <button class="auth-method-toggle active" type="button" data-auth-method="email">Use Email</button>
-              <button class="auth-method-toggle" type="button" data-auth-method="phone">Use Phone</button>
-            </div>
-            <form id="sign-up-form">
-              <input id="auth-method" type="hidden" name="auth-method" value="email">
-              <label>
-                Full name
-                <input type="text" name="full-name" placeholder="Your full name" required>
-              </label>
-              <label id="signup-email-field">
-                Email address
-                <input type="email" name="email" placeholder="you@example.com">
-              </label>
-              <label id="signup-phone-field" class="hidden">
-                Phone number
-                <input type="tel" name="phone" placeholder="0123456789">
-              </label>
-              <div class="field-row">
-                <label>
-                  Password
-                  <input type="password" name="signup-password" placeholder="Create a password" required>
-                </label>
-                <label>
-                  Confirm password
-                  <input type="password" name="confirm-password" placeholder="Repeat your password" required>
-                </label>
-              </div>
-              <div class="field-row">
-                <label>
-                  Age
-                  <input type="number" name="age" min="10" max="100" placeholder="Your age" required>
-                </label>
-                <label>
-                  Where do you live?
-                  <input type="text" name="location" placeholder="Area, town, or neighbourhood" required>
-                </label>
-              </div>
-              <label>
-                Photo
-                <input type="file" name="photo" accept="image/*" required>
-              </label>
-              <label>
-                Document proof
-                <input type="file" name="proof" accept=".pdf,image/*" required>
-              </label>
-              <p class="field-note">
-                Your application will be sent to the owner review queue. Only after approval will you be able to sign in.
-              </p>
-              <button class="button button-primary" type="submit">Submit Application</button>
-            </form>
+            <p class="auth-switch-text">Don't have account yet? <a href="sign-up.html">Sign up!</a></p>
           </article>
         </div>
+
+        <article class="card auth-side-card">
+          <span class="eyebrow">Need Approval?</span>
+          <h3>Applications are reviewed before access is granted.</h3>
+          <p>
+            If your account is still being checked, you will see a waiting message after sign in. Owner review is
+            restricted to the owner account only.
+          </p>
+          <div class="detail-list">
+            <div><strong>Member sign in</strong><span>Email or phone number with password</span></div>
+            <div><strong>Owner access</strong><span>Visible only after owner sign in</span></div>
+            <div><strong>Application notice</strong><span>Sent to the owner email for review</span></div>
+            <div><strong>Waiting time</strong><span>1 to 2 working days</span></div>
+          </div>
+        </article>
       </div>
     </section>
   </main>

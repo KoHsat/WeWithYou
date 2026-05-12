@@ -724,7 +724,9 @@ textarea {
 .reward-store-grid,
 .reward-history-grid,
 .contribution-grid,
-.auth-layout {
+.auth-layout,
+.auth-shell,
+.auth-stack {
   display: grid;
   gap: 1.4rem;
 }
@@ -951,7 +953,7 @@ textarea {
 }
 
 .owner-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .owner-stat-card strong {
@@ -965,6 +967,30 @@ textarea {
 .queue-columns,
 .auth-layout {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-shell {
+  grid-template-columns: 1.1fr 0.9fr;
+  align-items: start;
+}
+
+.auth-stack {
+  grid-template-columns: 1fr;
+}
+
+.auth-card,
+.auth-side-card {
+  align-self: start;
+}
+
+.auth-switch-text {
+  margin: 0;
+  color: #687187;
+}
+
+.auth-switch-text a {
+  color: var(--main-orange);
+  font-weight: 600;
 }
 
 .auth-methods {
@@ -1102,7 +1128,8 @@ textarea {
 
   .owner-stats,
   .queue-columns,
-  .auth-layout {
+  .auth-layout,
+  .auth-shell {
     grid-template-columns: 1fr;
   }
 }

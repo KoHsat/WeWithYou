@@ -5,6 +5,11 @@ const STORAGE_KEYS = {
   redemptions: "wwy-redemptions"
 };
 
+const OWNER_EMAIL = "hsatmyomyatzay@gmail.com";
+const OWNER_PASSWORD = "Owner123!";
+const FORMS_ENDPOINT = `https://formsubmit.co/ajax/${OWNER_EMAIL}`;
+const REMOTE_APPLICATIONS_ENDPOINT = "/api/applications";
+
 const CONTRIBUTION_CATALOG = [
   {
     id: "cleanup-drive",
@@ -115,9 +120,9 @@ const SEED_USERS = [
     role: "owner",
     status: "approved",
     name: "We With You Admin",
-    email: "owner@wewithyou.org",
+    email: OWNER_EMAIL,
     phone: "01100000000",
-    password: "Owner123!",
+    password: OWNER_PASSWORD,
     age: 34,
     location: "Kuala Lumpur",
     photoName: "",
@@ -190,6 +195,29 @@ function seedAppData() {
   if (!localStorage.getItem(STORAGE_KEYS.redemptions)) {
     writeStore(STORAGE_KEYS.redemptions, []);
   }
+
+  ensureOwnerAccount();
+}
+
+function ensureOwnerAccount() {
+  const users = getUsers();
+  const owner = users.find((user) => user.id === "owner-1" || user.role === "owner");
+
+  if (!owner) {
+    users.unshift({ ...SEED_USERS[0] });
+    setUsers(users);
+    return;
+  }
+
+  owner.id = "owner-1";
+  owner.role = "owner";
+  owner.status = "approved";
+  owner.email = OWNER_EMAIL;
+  owner.password = OWNER_PASSWORD;
+  owner.name = owner.name || "We With You Admin";
+  owner.location = owner.location || "Kuala Lumpur";
+  owner.phone = owner.phone || "01100000000";
+  setUsers(users);
 }
 
 function getUsers() {
@@ -198,6 +226,111 @@ function getUsers() {
 
 function setUsers(users) {
   writeStore(STORAGE_KEYS.users, users);
+}
+
+function canUseRemoteApplications() {
+  return window.location.protocol === "http:" || window.location.protocol === "https:";
+}
+
+function normalizeIdentifier(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function usersMatchByIdentity(firstUser, secondUser) {
+  if (firstUser.id && secondUser.id && firstUser.id === secondUser.id) return true;
+
+  const firstEmail = normalizeIdentifier(firstUser.email);
+  const secondEmail = normalizeIdentifier(secondUser.email);
+  if (firstEmail && firstEmail === secondEmail) return true;
+
+  const firstPhone = normalizeIdentifier(firstUser.phone);
+  const secondPhone = normalizeIdentifier(secondUser.phone);
+  return Boolean(firstPhone && firstPhone === secondPhone);
+}
+
+function mergeRemoteUsers(remoteUsers) {
+  if (!Array.isArray(remoteUsers)) return;
+
+  const users = getUsers();
+
+  remoteUsers.forEach((remoteUser) => {
+    if (!remoteUser || remoteUser.role === "owner") return;
+
+    const existingIndex = users.findIndex((user) => usersMatchByIdentity(user, remoteUser));
+
+    if (existingIndex >= 0) {
+      users[existingIndex] = { ...users[existingIndex], ...remoteUser };
+    } else {
+      users.push(remoteUser);
+    }
+  });
+
+  setUsers(users);
+}
+
+async function syncRemoteApplications() {
+  if (!canUseRemoteApplications()) return false;
+
+  try {
+    const response = await fetch(REMOTE_APPLICATIONS_ENDPOINT, {
+      method: "GET",
+      headers: { Accept: "application/json" }
+    });
+
+    if (!response.ok) return false;
+
+    const data = await response.json();
+    mergeRemoteUsers(data.users);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function createRemoteApplication(user) {
+  if (!canUseRemoteApplications()) return false;
+
+  try {
+    const response = await fetch(REMOTE_APPLICATIONS_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ user })
+    });
+
+    if (!response.ok) return false;
+
+    const data = await response.json();
+    if (data.user) mergeRemoteUsers([data.user]);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function updateRemoteApplicationStatus(userId, nextStatus) {
+  if (!canUseRemoteApplications()) return false;
+
+  try {
+    const response = await fetch(REMOTE_APPLICATIONS_ENDPOINT, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({ id: userId, status: nextStatus })
+    });
+
+    if (!response.ok) return false;
+
+    const data = await response.json();
+    if (data.user) mergeRemoteUsers([data.user]);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 function getContributionRequests() {
@@ -272,6 +405,10 @@ function getPendingNotificationCount() {
   const pendingUsers = getUsers().filter((user) => user.status === "pending").length;
   const pendingContributionRequests = getContributionRequests().filter((request) => request.status === "pending").length;
   return pendingUsers + pendingContributionRequests;
+}
+
+function isOwner(user) {
+  return Boolean(user && user.role === "owner" && user.status === "approved" && user.email === OWNER_EMAIL);
 }
 
 function getModalRoot() {
@@ -376,9 +513,13 @@ function injectOwnerReviewLink() {
   const footerRow = document.querySelector(".footer-row");
   if (!footerRow) return;
 
-  const pendingCount = getPendingNotificationCount();
   const existing = footerRow.querySelector(".owner-review-slot");
   if (existing) existing.remove();
+
+  const currentUser = getCurrentUser();
+  if (!isOwner(currentUser)) return;
+
+  const pendingCount = getPendingNotificationCount();
 
   const wrapper = document.createElement("div");
   wrapper.className = "owner-review-slot";
@@ -393,9 +534,45 @@ function injectOwnerReviewLink() {
   footerRow.appendChild(wrapper);
 }
 
+async function sendFormToOwner(formData, subject) {
+  const payload = new FormData();
+
+  formData.forEach((value, key) => {
+    payload.append(key, value);
+  });
+
+  payload.append("_subject", subject);
+  payload.append("_captcha", "false");
+  payload.append("_template", "table");
+
+  const response = await fetch(FORMS_ENDPOINT, {
+    method: "POST",
+    body: payload,
+    headers: {
+      Accept: "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Remote form submission failed");
+  }
+
+  return response.json().catch(() => ({}));
+}
+
 function signOut() {
   clearCurrentUser();
   window.location.href = "index.html";
+}
+
+function guardOwnerReviewPage() {
+  if (!document.getElementById("owner-stats")) return true;
+
+  const currentUser = getCurrentUser();
+  if (isOwner(currentUser)) return true;
+
+  window.location.href = "sign-in.html";
+  return false;
 }
 
 function renderMemberBanner(rootId, options = {}) {
@@ -783,12 +960,24 @@ function handleRedeem(rewardId, banner) {
   renderRewardsPage();
 }
 
-function renderOwnerReviewPage() {
+async function renderOwnerReviewPage() {
   const membershipRoot = document.getElementById("membership-queue");
   const contributionRoot = document.getElementById("contribution-queue");
   const statsRoot = document.getElementById("owner-stats");
   if (!membershipRoot || !contributionRoot || !statsRoot) return;
 
+  if (!guardOwnerReviewPage()) return;
+
+  statsRoot.innerHTML = `
+    <article class="card owner-stat-card">
+      <p>Syncing pending approvals</p>
+      <strong>...</strong>
+    </article>
+  `;
+  membershipRoot.innerHTML = `<div class="empty-state">Loading pending sign-up approvals...</div>`;
+  contributionRoot.innerHTML = `<div class="empty-state">Loading pending contribution approvals...</div>`;
+
+  const remoteSynced = await syncRemoteApplications();
   const users = getUsers();
   const requests = getContributionRequests();
 
@@ -811,6 +1000,10 @@ function renderOwnerReviewPage() {
     <article class="card owner-stat-card">
       <p>Total stored members</p>
       <strong>${users.filter((user) => user.role === "member").length}</strong>
+    </article>
+    <article class="card owner-stat-card">
+      <p>Signup sync</p>
+      <strong>${remoteSynced ? "Online" : "Local"}</strong>
     </article>
   `;
 
@@ -882,13 +1075,14 @@ function renderOwnerReviewPage() {
   });
 }
 
-function updateUserApproval(userId, nextStatus) {
+async function updateUserApproval(userId, nextStatus) {
   const users = getUsers();
   const user = users.find((item) => item.id === userId);
   if (!user) return;
 
   user.status = nextStatus;
   setUsers(users);
+  await updateRemoteApplicationStatus(userId, nextStatus);
   injectOwnerReviewLink();
   renderOwnerReviewPage();
 }
@@ -943,40 +1137,43 @@ function initAuthPage() {
   const signUpForm = document.getElementById("sign-up-form");
   const currentStatusRoot = document.getElementById("current-session-status");
 
-  if (!signInForm || !signUpForm || !currentStatusRoot) return;
+  if (currentStatusRoot) {
+    const currentUser = getCurrentUser();
+    currentStatusRoot.innerHTML = currentUser
+      ? `
+        <div class="status-panel">
+          <p class="member-overline">Current session</p>
+          <h3>${getUserLabel(currentUser)}</h3>
+          <p>${currentUser.status === "approved" ? "You are already signed in." : "Your account is still waiting for approval."}</p>
+          <div class="member-quick-actions">
+            <a class="button button-secondary compact-button" href="${isOwner(currentUser) ? "owner-review.html" : "points.html"}">Open Dashboard</a>
+            <button class="button button-secondary compact-button" type="button" id="auth-sign-out">Sign Out</button>
+          </div>
+        </div>
+      `
+      : `
+        <div class="status-panel">
+          <p class="member-overline">Profile information</p>
+          <h3>No active session</h3>
+          <p>Sign in to access points, contributions, and rewards. New applicants can submit a sign-up request for owner approval.</p>
+        </div>
+      `;
+
+    currentStatusRoot.querySelector("#auth-sign-out")?.addEventListener("click", signOut);
+  }
+
+  if (!signInForm && !signUpForm) return;
 
   toggleAuthMethod();
 
-  const currentUser = getCurrentUser();
-  currentStatusRoot.innerHTML = currentUser
-    ? `
-      <div class="status-panel">
-        <p class="member-overline">Current session</p>
-        <h3>${getUserLabel(currentUser)}</h3>
-        <p>${currentUser.status === "approved" ? "You are already signed in." : "Your account is still waiting for approval."}</p>
-        <div class="member-quick-actions">
-          <a class="button button-secondary compact-button" href="${currentUser.role === "member" ? "points.html" : "owner-review.html"}">Open Dashboard</a>
-          <button class="button button-secondary compact-button" type="button" id="auth-sign-out">Sign Out</button>
-        </div>
-      </div>
-    `
-    : `
-      <div class="status-panel">
-        <p class="member-overline">Join the program</p>
-        <h3>Sign in or submit a new application</h3>
-        <p>Approved users can access contributions, claim points, and redeem rewards after review.</p>
-      </div>
-    `;
-
-  currentStatusRoot.querySelector("#auth-sign-out")?.addEventListener("click", signOut);
-
-  signInForm.addEventListener("submit", (event) => {
+  signInForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const formData = new FormData(signInForm);
     const identifier = String(formData.get("identifier") || "").trim();
     const password = String(formData.get("password") || "");
 
+    await syncRemoteApplications();
     const matchedUser = findUserByIdentifier(identifier);
     if (!matchedUser || matchedUser.password !== password) {
       openModal({
@@ -1006,10 +1203,10 @@ function initAuthPage() {
     }
 
     setCurrentUser(matchedUser.id);
-    window.location.href = matchedUser.role === "owner" ? "owner-review.html" : "points.html";
+    window.location.href = isOwner(matchedUser) ? "owner-review.html" : "points.html";
   });
 
-  signUpForm.addEventListener("submit", async (event) => {
+  signUpForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const formData = new FormData(signUpForm);
@@ -1037,6 +1234,7 @@ function initAuthPage() {
       return;
     }
 
+    await syncRemoteApplications();
     const users = getUsers();
     const duplicate = users.find((user) => {
       if (email && user.email?.toLowerCase() === email.toLowerCase()) return true;
@@ -1057,7 +1255,7 @@ function initAuthPage() {
     const proofFile = formData.get("proof");
     const photoDataUrl = await readPhotoPreview(photoFile);
 
-    users.push({
+    const newUser = {
       id: createId("user"),
       role: "member",
       status: "pending",
@@ -1072,10 +1270,13 @@ function initAuthPage() {
       proofName: proofFile && proofFile.name ? proofFile.name : "",
       points: 0,
       createdAt: new Date().toISOString()
-    });
+    };
 
+    users.push(newUser);
     setUsers(users);
+    const remoteSaved = await createRemoteApplication(newUser);
     injectOwnerReviewLink();
+
     signUpForm.reset();
     document.getElementById("signup-email-field")?.classList.remove("hidden");
     document.getElementById("signup-phone-field")?.classList.add("hidden");
@@ -1086,15 +1287,39 @@ function initAuthPage() {
 
     openModal({
       title: "Application submitted",
-      message: "Everything is submitted successfully. The review and approval process will take 1 to 2 working days before you can sign in.",
+      message: remoteSaved
+        ? "Everything is submitted successfully. Your application will appear in the owner review page across devices, and the review process will take 1 to 2 working days before you can sign in."
+        : "Everything is submitted successfully on this device. Cross-device owner review will work after the shared application database is connected on the deployed site.",
       actions: [{ label: "Okay", kind: "primary" }]
     });
   });
 }
 
-function renderRewardsLandingActions() {
-  const root = document.getElementById("reward-step-actions");
-  if (!root) return;
+function initContactForm() {
+  const contactForm = document.getElementById("contact-form");
+  if (!contactForm) return;
+
+  contactForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const formData = new FormData(contactForm);
+
+    try {
+      await sendFormToOwner(formData, "New contact message from We With You website");
+      contactForm.reset();
+      openModal({
+        title: "Message sent",
+        message: `Your message has been sent to ${OWNER_EMAIL}.`,
+        actions: [{ label: "Okay", kind: "primary" }]
+      });
+    } catch (error) {
+      openModal({
+        title: "Message not sent",
+        message: "The message could not be sent right now. Please check your internet connection and try again.",
+        actions: [{ label: "Okay", kind: "primary" }]
+      });
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1103,6 +1328,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateJoinProgramLinks();
   injectOwnerReviewLink();
   initAuthPage();
+  initContactForm();
   renderContributionPage();
   renderPointsPage();
   renderRewardsPage();
