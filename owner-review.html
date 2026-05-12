@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Review | We With You</title>
+  <meta
+    name="description"
+    content="Review and approve new sign-up requests and contribution requests."
+  >
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-row">
+      <a class="brand" href="index.html" aria-label="We With You home">
+        <div class="brand-mark"><img src="logo.png" alt="We With You Logo"></div>
+        <div class="brand-copy">
+          <strong>We With You</strong>
+          <span>Bringing digital classrooms closer</span>
+        </div>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="nav-toggle-box">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <div class="nav-panel">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="services.html">Services</a>
+          <a href="mobile-hub.html">Mobile Hub</a>
+          <a href="rewards.html">Rewards</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+        <a class="nav-cta" href="sign-in.html">Join Program</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Owner Review</span>
+          <h1>Approve or deny member and activity requests.</h1>
+          <p>
+            This review center stores notification-style pending items in the browser so new sign-up applications and
+            contribution requests can be reviewed from one place.
+          </p>
+        </div>
+        <div id="owner-stats" class="owner-stats"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container queue-columns">
+        <div>
+          <div class="section-intro">
+            <span class="eyebrow">Membership Requests</span>
+            <h2>Pending sign-up approvals</h2>
+          </div>
+          <div id="membership-queue" class="activity-list"></div>
+        </div>
+        <div>
+          <div class="section-intro">
+            <span class="eyebrow">Contribution Requests</span>
+            <h2>Pending participation approvals</h2>
+          </div>
+          <div id="contribution-queue" class="activity-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <div>© 2026 We With You</div>
+      <div>Approval decisions update the member experience immediately.</div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

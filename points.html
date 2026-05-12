@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We With You | Earn Points</title>
+  <meta
+    name="description"
+    content="See your approved contribution history and claim your earned points."
+  >
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-row">
+      <a class="brand" href="index.html" aria-label="We With You home">
+        <div class="brand-mark"><img src="logo.png" alt="We With You Logo"></div>
+        <div class="brand-copy">
+          <strong>We With You</strong>
+          <span>Bringing digital classrooms closer</span>
+        </div>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="nav-toggle-box">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <div class="nav-panel">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="services.html">Services</a>
+          <a href="mobile-hub.html">Mobile Hub</a>
+          <a class="active" href="rewards.html">Rewards</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+        <a class="nav-cta" href="sign-in.html">Join Program</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Earn Points</span>
+          <h1>Claim the points you earned from approved community work.</h1>
+          <p>
+            Your profile is shown on the left and your total points are shown on the right. Claiming a completed
+            activity adds points immediately and shows a green points animation beside the total.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div id="member-banner-root" class="member-banner-root"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Activity History</span>
+          <h2>Your previous participation is listed here.</h2>
+        </div>
+        <div id="points-activity-list" class="activity-list"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <div>© 2026 We With You</div>
+      <div>Every approved task can become a claimed point reward.</div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We With You | Sign In & Sign Up</title>
+  <meta
+    name="description"
+    content="Sign in or apply to join the We With You member program."
+  >
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-row">
+      <a class="brand" href="index.html" aria-label="We With You home">
+        <div class="brand-mark"><img src="logo.png" alt="We With You Logo"></div>
+        <div class="brand-copy">
+          <strong>We With You</strong>
+          <span>Bringing digital classrooms closer</span>
+        </div>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="nav-toggle-box">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <div class="nav-panel">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="services.html">Services</a>
+          <a href="mobile-hub.html">Mobile Hub</a>
+          <a href="rewards.html">Rewards</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+        <a class="nav-cta" href="sign-in.html">Join Program</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Member Access</span>
+          <h1>Sign in or apply to join the program.</h1>
+          <p>
+            Members can sign in using an approved email or phone number and password. New applicants can submit their
+            details and supporting files for review.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container auth-layout">
+        <div id="current-session-status"></div>
+
+        <div class="auth-layout">
+          <article class="card">
+            <span class="eyebrow">Sign In</span>
+            <h3>Access your points and rewards.</h3>
+            <form id="sign-in-form">
+              <label>
+                Email or phone number
+                <input type="text" name="identifier" placeholder="you@example.com or 0123456789" required>
+              </label>
+              <label>
+                Password
+                <input type="password" name="password" placeholder="Enter your password" required>
+              </label>
+              <button class="button button-primary" type="submit">Sign In</button>
+            </form>
+          </article>
+
+          <article class="card">
+            <span class="eyebrow">Sign Up</span>
+            <h3>Submit your application for review.</h3>
+            <div class="auth-methods">
+              <button class="auth-method-toggle active" type="button" data-auth-method="email">Use Email</button>
+              <button class="auth-method-toggle" type="button" data-auth-method="phone">Use Phone</button>
+            </div>
+            <form id="sign-up-form">
+              <input id="auth-method" type="hidden" name="auth-method" value="email">
+              <label>
+                Full name
+                <input type="text" name="full-name" placeholder="Your full name" required>
+              </label>
+              <label id="signup-email-field">
+                Email address
+                <input type="email" name="email" placeholder="you@example.com">
+              </label>
+              <label id="signup-phone-field" class="hidden">
+                Phone number
+                <input type="tel" name="phone" placeholder="0123456789">
+              </label>
+              <div class="field-row">
+                <label>
+                  Password
+                  <input type="password" name="signup-password" placeholder="Create a password" required>
+                </label>
+                <label>
+                  Confirm password
+                  <input type="password" name="confirm-password" placeholder="Repeat your password" required>
+                </label>
+              </div>
+              <div class="field-row">
+                <label>
+                  Age
+                  <input type="number" name="age" min="10" max="100" placeholder="Your age" required>
+                </label>
+                <label>
+                  Where do you live?
+                  <input type="text" name="location" placeholder="Area, town, or neighbourhood" required>
+                </label>
+              </div>
+              <label>
+                Photo
+                <input type="file" name="photo" accept="image/*" required>
+              </label>
+              <label>
+                Document proof
+                <input type="file" name="proof" accept=".pdf,image/*" required>
+              </label>
+              <p class="field-note">
+                Your application will be sent to the owner review queue. Only after approval will you be able to sign in.
+              </p>
+              <button class="button button-primary" type="submit">Submit Application</button>
+            </form>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <div>© 2026 We With You</div>
+      <div>Applications are reviewed within 1 to 2 working days.</div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>

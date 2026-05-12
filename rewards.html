@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>We With You | Rewards</title>
+  <meta
+    name="description"
+    content="Contribute, claim points, and redeem rewards through the We With You community system."
+  >
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-row">
+      <a class="brand" href="index.html" aria-label="We With You home">
+        <div class="brand-mark"><img src="logo.png" alt="We With You Logo"></div>
+        <div class="brand-copy">
+          <strong>We With You</strong>
+          <span>Bringing digital classrooms closer</span>
+        </div>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="nav-toggle-box">
+          <span></span>
+          <span></span>
+          <span></span>
+        </span>
+      </button>
+      <div class="nav-panel">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html">Home</a>
+          <a href="about.html">About</a>
+          <a href="services.html">Services</a>
+          <a href="mobile-hub.html">Mobile Hub</a>
+          <a class="active" href="rewards.html">Rewards</a>
+          <a href="contact.html">Contact</a>
+        </nav>
+        <a class="nav-cta" href="sign-in.html">Join Program</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Rewards System</span>
+          <h1>Contribute, claim points, and redeem useful support.</h1>
+          <p>
+            Every approved contribution can become points, and every point can move a student closer to digital tools,
+            software access, and study support.
+          </p>
+        </div>
+
+        <div class="steps-grid">
+          <article class="card step-card accent-peach">
+            <div class="step-badge">1</div>
+            <h3>Contribute</h3>
+            <p>Browse community work with points, time, place, and detailed responsibilities before you engage.</p>
+            <div class="card-actions">
+              <a class="button button-secondary compact-button" href="contribute.html">View Contributions</a>
+            </div>
+          </article>
+          <article class="card step-card accent-sage">
+            <div class="step-badge">2</div>
+            <h3>Earn Points</h3>
+            <p>Review your approved participation history and claim the points you earned after approval.</p>
+            <div class="card-actions">
+              <a class="button button-secondary compact-button" href="points.html">Open Point History</a>
+            </div>
+          </article>
+          <article class="card step-card accent-blue">
+            <div class="step-badge">3</div>
+            <h3>Redeem Rewards</h3>
+            <p>Use your available points for promo codes, learning tools, USB kits, devices, and more.</p>
+            <div class="card-actions">
+              <a class="button button-secondary compact-button" href="#reward-store">Browse Rewards</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div id="member-banner-root" class="member-banner-root"></div>
+      </div>
+    </section>
+
+    <section id="reward-store">
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Reward Store</span>
+          <h2>Redeem your points for software, devices, and offline study tools.</h2>
+          <p>
+            Your total points are shown above. Redeeming an item will deduct the item value immediately and show a red
+            floating points animation beside the total.
+          </p>
+        </div>
+
+        <div id="reward-store-grid" class="reward-store-grid"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="section-intro">
+          <span class="eyebrow">Recent Redemptions</span>
+          <h2>Your latest reward activity appears here.</h2>
+        </div>
+        <div id="recent-redemptions" class="reward-history-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <div>© 2026 We With You</div>
+      <div>Community care turned into digital opportunity.</div>
+    </div>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
