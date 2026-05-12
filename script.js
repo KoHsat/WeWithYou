@@ -5,9 +5,10 @@ const STORAGE_KEYS = {
   redemptions: "wwy-redemptions"
 };
 
-const OWNER_EMAIL = "hsatmyomyatzay@gmail.com";
+const OWNER_EMAIL = "owner@wewithyou.org";
 const OWNER_PASSWORD = "Owner123!";
-const FORMS_ENDPOINT = `https://formsubmit.co/ajax/${OWNER_EMAIL}`;
+const CONTACT_EMAIL = "hsatmyomyatzay@gmail.com";
+const FORMS_ENDPOINT = `https://formsubmit.co/ajax/${CONTACT_EMAIL}`;
 const REMOTE_APPLICATIONS_ENDPOINT = "/api/applications";
 
 const CONTRIBUTION_CATALOG = [
@@ -1309,7 +1310,7 @@ function initContactForm() {
       contactForm.reset();
       openModal({
         title: "Message sent",
-        message: `Your message has been sent to ${OWNER_EMAIL}.`,
+        message: `Your message has been sent to ${CONTACT_EMAIL}.`,
         actions: [{ label: "Okay", kind: "primary" }]
       });
     } catch (error) {
