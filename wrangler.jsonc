@@ -8,6 +8,10 @@
     {
       "binding": "WWY_APPLICATIONS",
       "id": "2470834696b44cbb8d6985aa9266d0b5"
+    },
+    {
+      "binding": "KV",
+      "id": "2470834696b44cbb8d6985aa9266d0b5"
     }
   ]
 }
