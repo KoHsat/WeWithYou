@@ -9,6 +9,22 @@
     content="Review and approve new sign-up requests and contribution requests."
   >
   <link rel="stylesheet" href="style.css">
+  <script>
+    // Immediate guard: redirect non-owners before any content renders
+    (function () {
+      try {
+        var userId = localStorage.getItem("wwy-current-user-id");
+        if (!userId) { window.location.replace("sign-in.html"); return; }
+        var users = JSON.parse(localStorage.getItem("wwy-users") || "[]");
+        var user = users.find(function (u) { return u.id === userId; });
+        if (!user || user.role !== "owner" || user.status !== "approved" || user.email !== "owner@wewithyou.org") {
+          window.location.replace("sign-in.html");
+        }
+      } catch (e) {
+        window.location.replace("sign-in.html");
+      }
+    })();
+  </script>
 </head>
 <body>
   <header class="site-header">

@@ -1,0 +1,11 @@
+name = "wewithyou"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[[kv_namespaces]]
+binding = "WWY_APPLICATIONS"
+id = "9d461d0c91a743d3a9435f15ab45c4ea"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"

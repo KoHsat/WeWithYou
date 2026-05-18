@@ -260,7 +260,15 @@ function mergeRemoteUsers(remoteUsers) {
     const existingIndex = users.findIndex((user) => usersMatchByIdentity(user, remoteUser));
 
     if (existingIndex >= 0) {
-      users[existingIndex] = { ...users[existingIndex], ...remoteUser };
+      const local = users[existingIndex];
+      // Remote status always wins so approvals on one device reflect everywhere.
+      // Preserve local password and photoDataUrl if remote doesn't carry them.
+      users[existingIndex] = {
+        ...local,
+        ...remoteUser,
+        password: remoteUser.password || local.password,
+        photoDataUrl: remoteUser.photoDataUrl || local.photoDataUrl
+      };
     } else {
       users.push(remoteUser);
     }
@@ -572,7 +580,10 @@ function guardOwnerReviewPage() {
   const currentUser = getCurrentUser();
   if (isOwner(currentUser)) return true;
 
-  window.location.href = "sign-in.html";
+  // Not an owner — hide the page content immediately to prevent flash,
+  // then redirect to sign-in.
+  document.querySelector("main")?.setAttribute("style", "display:none");
+  window.location.replace("sign-in.html");
   return false;
 }
 
@@ -1278,6 +1289,34 @@ function initAuthPage() {
     const remoteSaved = await createRemoteApplication(newUser);
     injectOwnerReviewLink();
 
+    // Notify owner by email whenever a new application is submitted
+    try {
+      const notifyData = new FormData();
+      notifyData.append("name", newUser.name || "Applicant");
+      notifyData.append("email", newUser.email || newUser.phone || "—");
+      notifyData.append("subject", `New membership application from ${newUser.name || "a new applicant"}`);
+      notifyData.append("message",
+        `A new sign-up application has been submitted on the We With You website.\n\n` +
+        `Name: ${newUser.name || "—"}\n` +
+        `Email: ${newUser.email || "—"}\n` +
+        `Phone: ${newUser.phone || "—"}\n` +
+        `Age: ${newUser.age || "—"}\n` +
+        `Location: ${newUser.location || "—"}\n` +
+        `Submitted: ${new Date().toLocaleString("en-MY")}\n\n` +
+        `Please log in to the Owner Review page to approve or deny this application.`
+      );
+      notifyData.append("_subject", `New We With You application: ${newUser.name || "New applicant"}`);
+      notifyData.append("_captcha", "false");
+      notifyData.append("_template", "table");
+      await fetch(FORMS_ENDPOINT, {
+        method: "POST",
+        body: notifyData,
+        headers: { Accept: "application/json" }
+      });
+    } catch (_) {
+      // Email notification failure is non-critical; application is still saved
+    }
+
     signUpForm.reset();
     document.getElementById("signup-email-field")?.classList.remove("hidden");
     document.getElementById("signup-phone-field")?.classList.add("hidden");
@@ -1290,7 +1329,7 @@ function initAuthPage() {
       title: "Application submitted",
       message: remoteSaved
         ? "Everything is submitted successfully. Your application will appear in the owner review page across devices, and the review process will take 1 to 2 working days before you can sign in."
-        : "Everything is submitted successfully on this device. Cross-device owner review will work after the shared application database is connected on the deployed site.",
+        : "Everything is submitted successfully on this device. The owner has been notified by email. Cross-device owner review will work after the shared application database is connected on the deployed site.",
       actions: [{ label: "Okay", kind: "primary" }]
     });
   });
