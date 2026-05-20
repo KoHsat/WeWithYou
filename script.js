@@ -10,7 +10,6 @@ const OWNER_PASSWORD = "Owner123!";
 const CONTACT_EMAIL = "hsatmyomyatzay@gmail.com";
 const FORMS_ENDPOINT = `https://formsubmit.co/ajax/${CONTACT_EMAIL}`;
 const REMOTE_APPLICATIONS_ENDPOINT = "/api/applications";
-const REMOTE_CONTRIBUTIONS_ENDPOINT = "/api/contributions";
 
 const CONTRIBUTION_CATALOG = [
   {
@@ -341,63 +340,6 @@ function getContributionRequests() {
 
 function setContributionRequests(requests) {
   writeStore(STORAGE_KEYS.contributionRequests, requests);
-}
-
-function mergeRemoteContributions(remoteRequests) {
-  if (!Array.isArray(remoteRequests)) return;
-  const local = getContributionRequests();
-  remoteRequests.forEach((remote) => {
-    const idx = local.findIndex((r) => r.id === remote.id);
-    if (idx >= 0) {
-      // Remote status always wins so owner approvals sync back
-      local[idx] = { ...local[idx], ...remote };
-    } else {
-      local.push(remote);
-    }
-  });
-  setContributionRequests(local);
-}
-
-async function syncRemoteContributions() {
-  if (!canUseRemoteApplications()) return false;
-  try {
-    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
-      method: "GET",
-      headers: { Accept: "application/json" }
-    });
-    if (!response.ok) return false;
-    const data = await response.json();
-    mergeRemoteContributions(data.requests);
-    return true;
-  } catch { return false; }
-}
-
-async function pushRemoteContribution(request) {
-  if (!canUseRemoteApplications()) return false;
-  try {
-    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ request })
-    });
-    if (!response.ok) return false;
-    const data = await response.json();
-    if (data.request) mergeRemoteContributions([data.request]);
-    return true;
-  } catch { return false; }
-}
-
-async function updateRemoteContributionStatus(requestId, nextStatus) {
-  if (!canUseRemoteApplications()) return false;
-  try {
-    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ id: requestId, status: nextStatus })
-    });
-    if (!response.ok) return false;
-    return true;
-  } catch { return false; }
 }
 
 function getRedemptions() {
@@ -822,7 +764,7 @@ function handleEngageRequest(contributionId) {
 
   const filtered = requests.filter((request) => !(request.userId === currentUser.id && request.contributionId === contributionId));
 
-  const newRequest = {
+  filtered.push({
     id: createId("request"),
     userId: currentUser.id,
     contributionId,
@@ -830,11 +772,9 @@ function handleEngageRequest(contributionId) {
     claimed: false,
     requestedAt: new Date().toISOString(),
     reviewedAt: ""
-  };
+  });
 
-  filtered.push(newRequest);
   setContributionRequests(filtered);
-  pushRemoteContribution(newRequest);
   injectOwnerReviewLink();
   renderContributionPage();
 
@@ -845,7 +785,7 @@ function handleEngageRequest(contributionId) {
   });
 }
 
-async function renderPointsPage() {
+function renderPointsPage() {
   const listRoot = document.getElementById("points-activity-list");
   if (!listRoot) return;
 
@@ -858,9 +798,6 @@ async function renderPointsPage() {
     listRoot.innerHTML = "";
     return;
   }
-
-  // Sync from remote so owner approvals appear without a page reload
-  await syncRemoteContributions();
 
   const requests = getContributionRequests()
     .filter((request) => request.userId === banner.user.id)
@@ -919,6 +856,14 @@ function handleClaimPoints(requestId, banner) {
 
   setContributionRequests(requests);
   setUsers(users);
+
+  // Push claimed=true to remote so re-syncing doesn't reset it
+  fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ id: requestId, status: "approved", claimed: true })
+  }).catch(() => {});
+
   animatePointsChange(banner.deltaId, banner.totalId, contribution.points);
   renderPointsPage();
 }
@@ -1042,7 +987,6 @@ async function renderOwnerReviewPage() {
   contributionRoot.innerHTML = `<div class="empty-state">Loading pending contribution approvals...</div>`;
 
   const remoteSynced = await syncRemoteApplications();
-  await syncRemoteContributions();
   const users = getUsers();
   const requests = getContributionRequests();
 
@@ -1160,7 +1104,6 @@ function updateContributionApproval(requestId, nextStatus) {
   request.status = nextStatus;
   request.reviewedAt = new Date().toISOString();
   setContributionRequests(requests);
-  updateRemoteContributionStatus(requestId, nextStatus);
   injectOwnerReviewLink();
   renderOwnerReviewPage();
 }

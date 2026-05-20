@@ -172,6 +172,7 @@ async function handleContributionsApi(request, env) {
       if (!req) return json({ error: "Not found." }, 404);
       req.status = status;
       req.reviewedAt = new Date().toISOString();
+      if (typeof body.claimed === "boolean") req.claimed = body.claimed;
       await writeKey(env, CONTRIBUTIONS_KEY, requests);
       return json({ request: req });
     } catch { return json({ error: "Could not update request." }, 500); }
