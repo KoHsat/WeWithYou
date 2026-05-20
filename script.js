@@ -10,6 +10,7 @@ const OWNER_PASSWORD = "Owner123!";
 const CONTACT_EMAIL = "hsatmyomyatzay@gmail.com";
 const FORMS_ENDPOINT = `https://formsubmit.co/ajax/${CONTACT_EMAIL}`;
 const REMOTE_APPLICATIONS_ENDPOINT = "/api/applications";
+const REMOTE_CONTRIBUTIONS_ENDPOINT = "/api/contributions";
 
 const CONTRIBUTION_CATALOG = [
   {
@@ -260,15 +261,7 @@ function mergeRemoteUsers(remoteUsers) {
     const existingIndex = users.findIndex((user) => usersMatchByIdentity(user, remoteUser));
 
     if (existingIndex >= 0) {
-      const local = users[existingIndex];
-      // Remote status always wins so approvals on one device reflect everywhere.
-      // Preserve local password and photoDataUrl if remote doesn't carry them.
-      users[existingIndex] = {
-        ...local,
-        ...remoteUser,
-        password: remoteUser.password || local.password,
-        photoDataUrl: remoteUser.photoDataUrl || local.photoDataUrl
-      };
+      users[existingIndex] = { ...users[existingIndex], ...remoteUser };
     } else {
       users.push(remoteUser);
     }
@@ -348,6 +341,63 @@ function getContributionRequests() {
 
 function setContributionRequests(requests) {
   writeStore(STORAGE_KEYS.contributionRequests, requests);
+}
+
+function mergeRemoteContributions(remoteRequests) {
+  if (!Array.isArray(remoteRequests)) return;
+  const local = getContributionRequests();
+  remoteRequests.forEach((remote) => {
+    const idx = local.findIndex((r) => r.id === remote.id);
+    if (idx >= 0) {
+      // Remote status always wins so owner approvals sync back
+      local[idx] = { ...local[idx], ...remote };
+    } else {
+      local.push(remote);
+    }
+  });
+  setContributionRequests(local);
+}
+
+async function syncRemoteContributions() {
+  if (!canUseRemoteApplications()) return false;
+  try {
+    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
+      method: "GET",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    mergeRemoteContributions(data.requests);
+    return true;
+  } catch { return false; }
+}
+
+async function pushRemoteContribution(request) {
+  if (!canUseRemoteApplications()) return false;
+  try {
+    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ request })
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    if (data.request) mergeRemoteContributions([data.request]);
+    return true;
+  } catch { return false; }
+}
+
+async function updateRemoteContributionStatus(requestId, nextStatus) {
+  if (!canUseRemoteApplications()) return false;
+  try {
+    const response = await fetch(REMOTE_CONTRIBUTIONS_ENDPOINT, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ id: requestId, status: nextStatus })
+    });
+    if (!response.ok) return false;
+    return true;
+  } catch { return false; }
 }
 
 function getRedemptions() {
@@ -580,10 +630,7 @@ function guardOwnerReviewPage() {
   const currentUser = getCurrentUser();
   if (isOwner(currentUser)) return true;
 
-  // Not an owner — hide the page content immediately to prevent flash,
-  // then redirect to sign-in.
-  document.querySelector("main")?.setAttribute("style", "display:none");
-  window.location.replace("sign-in.html");
+  window.location.href = "sign-in.html";
   return false;
 }
 
@@ -775,7 +822,7 @@ function handleEngageRequest(contributionId) {
 
   const filtered = requests.filter((request) => !(request.userId === currentUser.id && request.contributionId === contributionId));
 
-  filtered.push({
+  const newRequest = {
     id: createId("request"),
     userId: currentUser.id,
     contributionId,
@@ -783,9 +830,11 @@ function handleEngageRequest(contributionId) {
     claimed: false,
     requestedAt: new Date().toISOString(),
     reviewedAt: ""
-  });
+  };
 
+  filtered.push(newRequest);
   setContributionRequests(filtered);
+  pushRemoteContribution(newRequest);
   injectOwnerReviewLink();
   renderContributionPage();
 
@@ -796,7 +845,7 @@ function handleEngageRequest(contributionId) {
   });
 }
 
-function renderPointsPage() {
+async function renderPointsPage() {
   const listRoot = document.getElementById("points-activity-list");
   if (!listRoot) return;
 
@@ -809,6 +858,9 @@ function renderPointsPage() {
     listRoot.innerHTML = "";
     return;
   }
+
+  // Sync from remote so owner approvals appear without a page reload
+  await syncRemoteContributions();
 
   const requests = getContributionRequests()
     .filter((request) => request.userId === banner.user.id)
@@ -990,6 +1042,7 @@ async function renderOwnerReviewPage() {
   contributionRoot.innerHTML = `<div class="empty-state">Loading pending contribution approvals...</div>`;
 
   const remoteSynced = await syncRemoteApplications();
+  await syncRemoteContributions();
   const users = getUsers();
   const requests = getContributionRequests();
 
@@ -1107,6 +1160,7 @@ function updateContributionApproval(requestId, nextStatus) {
   request.status = nextStatus;
   request.reviewedAt = new Date().toISOString();
   setContributionRequests(requests);
+  updateRemoteContributionStatus(requestId, nextStatus);
   injectOwnerReviewLink();
   renderOwnerReviewPage();
 }
@@ -1289,34 +1343,6 @@ function initAuthPage() {
     const remoteSaved = await createRemoteApplication(newUser);
     injectOwnerReviewLink();
 
-    // Notify owner by email whenever a new application is submitted
-    try {
-      const notifyData = new FormData();
-      notifyData.append("name", newUser.name || "Applicant");
-      notifyData.append("email", newUser.email || newUser.phone || "—");
-      notifyData.append("subject", `New membership application from ${newUser.name || "a new applicant"}`);
-      notifyData.append("message",
-        `A new sign-up application has been submitted on the We With You website.\n\n` +
-        `Name: ${newUser.name || "—"}\n` +
-        `Email: ${newUser.email || "—"}\n` +
-        `Phone: ${newUser.phone || "—"}\n` +
-        `Age: ${newUser.age || "—"}\n` +
-        `Location: ${newUser.location || "—"}\n` +
-        `Submitted: ${new Date().toLocaleString("en-MY")}\n\n` +
-        `Please log in to the Owner Review page to approve or deny this application.`
-      );
-      notifyData.append("_subject", `New We With You application: ${newUser.name || "New applicant"}`);
-      notifyData.append("_captcha", "false");
-      notifyData.append("_template", "table");
-      await fetch(FORMS_ENDPOINT, {
-        method: "POST",
-        body: notifyData,
-        headers: { Accept: "application/json" }
-      });
-    } catch (_) {
-      // Email notification failure is non-critical; application is still saved
-    }
-
     signUpForm.reset();
     document.getElementById("signup-email-field")?.classList.remove("hidden");
     document.getElementById("signup-phone-field")?.classList.add("hidden");
@@ -1329,7 +1355,7 @@ function initAuthPage() {
       title: "Application submitted",
       message: remoteSaved
         ? "Everything is submitted successfully. Your application will appear in the owner review page across devices, and the review process will take 1 to 2 working days before you can sign in."
-        : "Everything is submitted successfully on this device. The owner has been notified by email. Cross-device owner review will work after the shared application database is connected on the deployed site.",
+        : "Everything is submitted successfully on this device. Cross-device owner review will work after the shared application database is connected on the deployed site.",
       actions: [{ label: "Okay", kind: "primary" }]
     });
   });
