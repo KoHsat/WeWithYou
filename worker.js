@@ -35,8 +35,8 @@ async function writeKey(env, key, data) {
   await store.put(key, JSON.stringify(data));
 }
 
-function cleanText(value) { return String(value || "").trim(); }
-function cleanEmail(value) { return cleanText(value).toLowerCase(); }
+function cleanText(v) { return String(v || "").trim(); }
+function cleanEmail(v) { return cleanText(v).toLowerCase(); }
 
 function sanitizeUser(input, fallbackStatus = "pending") {
   const s = input && typeof input === "object" ? input : {};
@@ -59,7 +59,7 @@ function sanitizeUser(input, fallbackStatus = "pending") {
   };
 }
 
-function sanitizeRequest(input) {
+function sanitizeContribRequest(input) {
   const s = input && typeof input === "object" ? input : {};
   const status = ALLOWED_STATUSES.has(s.status) ? s.status : "pending";
   return {
@@ -79,14 +79,12 @@ function usersMatch(a, b) {
   return Boolean(a.phone && b.phone && a.phone === b.phone);
 }
 
-// --- /api/applications ---
 async function handleApplicationsApi(request, env) {
   if (request.method === "OPTIONS") return json({ ok: true });
 
   if (request.method === "GET") {
     try {
-      const users = await readKey(env, APPLICATIONS_KEY);
-      return json({ users });
+      return json({ users: await readKey(env, APPLICATIONS_KEY) });
     } catch { return json({ error: "Sync not configured." }, 503); }
   }
 
@@ -130,32 +128,30 @@ async function handleApplicationsApi(request, env) {
   return json({ error: "Method not allowed." }, 405);
 }
 
-// --- /api/contributions ---
 async function handleContributionsApi(request, env) {
   if (request.method === "OPTIONS") return json({ ok: true });
 
   if (request.method === "GET") {
     try {
-      const requests = await readKey(env, CONTRIBUTIONS_KEY);
-      return json({ requests });
+      return json({ requests: await readKey(env, CONTRIBUTIONS_KEY) });
     } catch { return json({ error: "Sync not configured." }, 503); }
   }
 
   if (request.method === "POST") {
     try {
       const body = await request.json();
-      const incoming = sanitizeRequest(body.request);
+      const incoming = sanitizeContribRequest(body.request);
       if (!incoming.userId || !incoming.contributionId)
         return json({ error: "userId and contributionId required." }, 400);
-      const requests = await readKey(env, CONTRIBUTIONS_KEY);
-      const idx = requests.findIndex(r => r.id === incoming.id);
+      const reqs = await readKey(env, CONTRIBUTIONS_KEY);
+      const idx = reqs.findIndex(r => r.id === incoming.id);
       if (idx >= 0) {
-        requests[idx] = { ...requests[idx], ...incoming };
-        await writeKey(env, CONTRIBUTIONS_KEY, requests);
-        return json({ request: requests[idx] });
+        reqs[idx] = { ...reqs[idx], ...incoming };
+        await writeKey(env, CONTRIBUTIONS_KEY, reqs);
+        return json({ request: reqs[idx] });
       }
-      requests.push(incoming);
-      await writeKey(env, CONTRIBUTIONS_KEY, requests);
+      reqs.push(incoming);
+      await writeKey(env, CONTRIBUTIONS_KEY, reqs);
       return json({ request: incoming }, 201);
     } catch { return json({ error: "Could not save request." }, 500); }
   }
@@ -167,13 +163,14 @@ async function handleContributionsApi(request, env) {
       const status = cleanText(body.status);
       if (!id || !ALLOWED_STATUSES.has(status))
         return json({ error: "Valid id and status required." }, 400);
-      const requests = await readKey(env, CONTRIBUTIONS_KEY);
-      const req = requests.find(r => r.id === id);
+      const reqs = await readKey(env, CONTRIBUTIONS_KEY);
+      const req = reqs.find(r => r.id === id);
       if (!req) return json({ error: "Not found." }, 404);
       req.status = status;
       req.reviewedAt = new Date().toISOString();
+      // Persist claimed flag so it never resets after sync
       if (typeof body.claimed === "boolean") req.claimed = body.claimed;
-      await writeKey(env, CONTRIBUTIONS_KEY, requests);
+      await writeKey(env, CONTRIBUTIONS_KEY, reqs);
       return json({ request: req });
     } catch { return json({ error: "Could not update request." }, 500); }
   }
@@ -184,10 +181,8 @@ async function handleContributionsApi(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === "/api/applications")
-      return handleApplicationsApi(request, env);
-    if (url.pathname === "/api/contributions")
-      return handleContributionsApi(request, env);
+    if (url.pathname === "/api/applications") return handleApplicationsApi(request, env);
+    if (url.pathname === "/api/contributions") return handleContributionsApi(request, env);
     return env.ASSETS.fetch(request);
   }
 };
