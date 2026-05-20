@@ -14,19 +14,14 @@ function json(data, status = 200) {
   });
 }
 
-function getStore(env) {
-  return env.WWY_APPLICATIONS || env.KV;
-}
+function getStore(env) { return env.WWY_APPLICATIONS || env.KV; }
 
 async function readKey(env, key) {
   const store = getStore(env);
   if (!store) throw new Error("Missing KV binding");
   const raw = await store.get(key);
   if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+  try { const p = JSON.parse(raw); return Array.isArray(p) ? p : []; } catch { return []; }
 }
 
 async function writeKey(env, key, data) {
@@ -66,8 +61,7 @@ function sanitizeContribRequest(input) {
     id: cleanText(s.id) || `request-${Date.now()}`,
     userId: cleanText(s.userId),
     contributionId: cleanText(s.contributionId),
-    status,
-    claimed: Boolean(s.claimed),
+    status, claimed: Boolean(s.claimed),
     requestedAt: cleanText(s.requestedAt) || new Date().toISOString(),
     reviewedAt: cleanText(s.reviewedAt)
   };
@@ -83,9 +77,8 @@ async function handleApplicationsApi(request, env) {
   if (request.method === "OPTIONS") return json({ ok: true });
 
   if (request.method === "GET") {
-    try {
-      return json({ users: await readKey(env, APPLICATIONS_KEY) });
-    } catch { return json({ error: "Sync not configured." }, 503); }
+    try { return json({ users: await readKey(env, APPLICATIONS_KEY) }); }
+    catch { return json({ error: "Sync not configured." }, 503); }
   }
 
   if (request.method === "POST") {
@@ -112,14 +105,24 @@ async function handleApplicationsApi(request, env) {
     try {
       const body = await request.json();
       const id = cleanText(body.id);
-      const status = cleanText(body.status);
-      if (!id || !ALLOWED_STATUSES.has(status))
-        return json({ error: "Valid id and status required." }, 400);
+      if (!id) return json({ error: "id required." }, 400);
       const users = await readKey(env, APPLICATIONS_KEY);
       const user = users.find(u => u.id === id);
       if (!user) return json({ error: "Not found." }, 404);
-      user.status = status;
-      user.reviewedAt = new Date().toISOString();
+
+      // Update status if provided
+      if (body.status !== undefined) {
+        if (!ALLOWED_STATUSES.has(body.status))
+          return json({ error: "Invalid status." }, 400);
+        user.status = body.status;
+        user.reviewedAt = new Date().toISOString();
+      }
+
+      // Update points if provided (from claim/redeem sync)
+      if (typeof body.points === "number") {
+        user.points = body.points;
+      }
+
       await writeKey(env, APPLICATIONS_KEY, users);
       return json({ user });
     } catch { return json({ error: "Could not update application." }, 500); }
@@ -132,9 +135,8 @@ async function handleContributionsApi(request, env) {
   if (request.method === "OPTIONS") return json({ ok: true });
 
   if (request.method === "GET") {
-    try {
-      return json({ requests: await readKey(env, CONTRIBUTIONS_KEY) });
-    } catch { return json({ error: "Sync not configured." }, 503); }
+    try { return json({ requests: await readKey(env, CONTRIBUTIONS_KEY) }); }
+    catch { return json({ error: "Sync not configured." }, 503); }
   }
 
   if (request.method === "POST") {
@@ -168,7 +170,6 @@ async function handleContributionsApi(request, env) {
       if (!req) return json({ error: "Not found." }, 404);
       req.status = status;
       req.reviewedAt = new Date().toISOString();
-      // Persist claimed flag so it never resets after sync
       if (typeof body.claimed === "boolean") req.claimed = body.claimed;
       await writeKey(env, CONTRIBUTIONS_KEY, reqs);
       return json({ request: req });
